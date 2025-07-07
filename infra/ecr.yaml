@@ -1,0 +1,16 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Create ECR Repository in Account 1
+
+Resources:
+  VamshiECR:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: vamshi-microservice
+      ImageScanningConfiguration:
+        scanOnPush: true
+
+Outputs:
+  EcrUri:
+    Value: !GetAtt VamshiECR.RepositoryUri
+    Export:
+      Name: EcrRepoUri

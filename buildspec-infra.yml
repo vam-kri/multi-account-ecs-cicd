@@ -1,0 +1,34 @@
+version: 0.2
+
+env:
+  variables:
+    ECR_STACK_NAME: vamshi-ecr-stack
+    ECS_STACK_NAME: vamshi-ecs-stack
+    ACCOUNT1_ROLE_ARN: arn:aws:iam::044854092841:role/CrossAccountECRDeploymentRole
+
+phases:
+  install:
+    runtime-versions:
+      python: 3.10
+    commands:
+      - echo Installing AWS CLI...
+      - pip install --upgrade awscli
+
+  build:
+    commands:
+      - echo Deploying ECR stack in Account 1 using AssumeRole...
+      - >
+        aws sts assume-role --role-arn "" --role-session-name ecrDeploySession > temp_creds.json
+      - export AWS_ACCESS_KEY_ID=$(cat temp_creds.json | jq -r .Credentials.AccessKeyId)
+      - export AWS_SECRET_ACCESS_KEY=$(cat temp_creds.json | jq -r .Credentials.SecretAccessKey)
+      - export AWS_SESSION_TOKEN=$(cat temp_creds.json | jq -r .Credentials.SessionToken)
+
+      - echo Deploying ecr.yaml to Account 1...
+      - aws cloudformation deploy           --template-file infra/ecr.yaml           --stack-name $ECR_STACK_NAME           --capabilities CAPABILITY_NAMED_IAM
+
+      - echo Switching back to Account 2 for ECS infra deployment...
+      - unset AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN
+
+      - echo Deploying ecs_infra.yaml to Account 2...
+      - >
+        aws cloudformation deploy           --template-file infra/ecs_infra.yaml           --stack-name $ECS_STACK_NAME           --capabilities CAPABILITY_NAMED_IAM           --parameter-overrides EcrImageUri=dummy.dkr.ecr.us-east-1.amazonaws.com/placeholder:latest
