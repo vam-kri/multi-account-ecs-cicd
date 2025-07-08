@@ -1,0 +1,37 @@
+version: 0.2
+
+env:
+  variables:
+    ECR_REPO_URI: 044854092841.dkr.ecr.us-east-1.amazonaws.com/vamshi-app-repo
+    ECS_CLUSTER: vamshi-cluster
+    ECS_SERVICE: vamshi-service
+    IMAGE_TAG: latest
+
+phases:
+  install:
+    runtime-versions:
+      docker: 20
+    commands:
+      - echo "Installing AWS CLI and dependencies..."
+      - pip install --upgrade awscli
+
+  pre_build:
+    commands:
+      - echo "Logging into ECR (Account 1)..."
+      - aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin $ECR_REPO_URI
+
+  build:
+    commands:
+      - echo "Building Docker image..."
+      - docker build -t $ECR_REPO_URI:$IMAGE_TAG ./microservice-app
+
+  post_build:
+    commands:
+      - echo "Pushing Docker image to ECR..."
+      - docker push $ECR_REPO_URI:$IMAGE_TAG
+
+      - echo "Forcing ECS service deployment with new image..."
+      - aws ecs update-service \
+          --cluster $ECS_CLUSTER \
+          --service $ECS_SERVICE \
+          --force-new-deployment

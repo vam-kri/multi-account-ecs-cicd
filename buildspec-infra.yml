@@ -11,32 +11,29 @@ phases:
     runtime-versions:
       python: 3.10
     commands:
-      - echo Installing AWS CLI...
-      - pip install --upgrade awscli
-      - yum install -y jq
+      - pip install --upgrade awscli jq
 
   build:
     commands:
-      - echo Deploying ECR stack in Account 1 using AssumeRole...
+      - echo "Assuming role in Account 1..."
       - >
         aws sts assume-role \
-          --role-arn $ACCOUNT1_ROLE_ARN \
+          --role-arn "$ACCOUNT1_ROLE_ARN" \
           --role-session-name ecrDeploySession > temp_creds.json
+      - export AWS_ACCESS_KEY_ID=$(jq -r .Credentials.AccessKeyId temp_creds.json)
+      - export AWS_SECRET_ACCESS_KEY=$(jq -r .Credentials.SecretAccessKey temp_creds.json)
+      - export AWS_SESSION_TOKEN=$(jq -r .Credentials.SessionToken temp_creds.json)
 
-      - export AWS_ACCESS_KEY_ID=$(cat temp_creds.json | jq -r .Credentials.AccessKeyId)
-      - export AWS_SECRET_ACCESS_KEY=$(cat temp_creds.json | jq -r .Credentials.SecretAccessKey)
-      - export AWS_SESSION_TOKEN=$(cat temp_creds.json | jq -r .Credentials.SessionToken)
-
-      - echo Deploying ecr.yaml to Account 1...
+      - echo "Deploying ECR stack in Account 1..."
       - aws cloudformation deploy \
           --template-file infra/ecr.yaml \
           --stack-name $ECR_STACK_NAME \
           --capabilities CAPABILITY_NAMED_IAM
 
-      - echo Switching back to Account 2 for ECS infra deployment...
+      - echo "Switching back to Account 2..."
       - unset AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN
 
-      - echo Deploying ecs_infra.yaml to Account 2...
+      - echo "Deploying ECS infrastructure in Account 2..."
       - aws cloudformation deploy \
           --template-file infra/ecs_infra.yaml \
           --stack-name $ECS_STACK_NAME \
