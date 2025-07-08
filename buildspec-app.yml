@@ -2,35 +2,37 @@ version: 0.2
 
 env:
   variables:
-    AWS_DEFAULT_REGION: us-east-1
+    IMAGE_TAG: "latest"
 
 phases:
   install:
+    runtime-versions:
+      docker: 20
     commands:
       - echo Installing dependencies...
       - pip install --upgrade awscli jq
 
-pre_build:
-  commands:
-    - echo Preparing to assume role in Account 1...
-    - |
-      CREDS=$(aws sts assume-role \
-        --role-arn "$ACCOUNT1_ROLE_ARN" \
-        --role-session-name codebuildAppSession)
-    - export AWS_ACCESS_KEY_ID=$(echo $CREDS | jq -r '.Credentials.AccessKeyId')
-    - export AWS_SECRET_ACCESS_KEY=$(echo $CREDS | jq -r '.Credentials.SecretAccessKey')
-    - export AWS_SESSION_TOKEN=$(echo $CREDS | jq -r '.Credentials.SessionToken')
-    - echo Logging in to ECR in Account 1...
-    - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin 044854092841.dkr.ecr.us-east-1.amazonaws.com
-
-build:
+  pre_build:
     commands:
-      - echo Building Docker image...
-      - cd microservice-app             # 👈 switch to correct dir
-      - docker build -t vamshi-microservice:$CODEBUILD_RESOLVED_SOURCE_VERSION .
+      - echo Preparing to assume role in Account 1...
+      - |
+        CREDS=$(aws sts assume-role \
+          --role-arn "$ACCOUNT1_ROLE_ARN" \
+          --role-session-name codebuildAppSession \
+          --output json)
+      - export AWS_ACCESS_KEY_ID=$(echo $CREDS | jq -r '.Credentials.AccessKeyId')
+      - export AWS_SECRET_ACCESS_KEY=$(echo $CREDS | jq -r '.Credentials.SecretAccessKey')
+      - export AWS_SESSION_TOKEN=$(echo $CREDS | jq -r '.Credentials.SessionToken')
+      - ACCOUNT1_ECR_URI="$ACCOUNT1_ECR_REPO_URI"
 
-post_build:
+  build:
     commands:
-      - echo Pushing Docker image to Account 1 ECR...
-      - docker tag vamshi-microservice:$CODEBUILD_RESOLVED_SOURCE_VERSION 044854092841.dkr.ecr.us-east-1.amazonaws.com/vamshi-microservice:$CODEBUILD_RESOLVED_SOURCE_VERSION
-      - docker push 044854092841.dkr.ecr.us-east-1.amazonaws.com/vamshi-microservice:$CODEBUILD_RESOLVED_SOURCE_VERSION
+      - echo Building the Docker image...
+      - docker build -t vamshi-microservice:$IMAGE_TAG .
+      - docker tag vamshi-microservice:$IMAGE_TAG $ACCOUNT1_ECR_URI:$IMAGE_TAG
+
+  post_build:
+    commands:
+      - echo Logging in and pushing to Account 1 ECR...
+      - aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin $ACCOUNT1_ECR_URI
+      - docker push $ACCOUNT1_ECR_URI:$IMAGE_TAG
