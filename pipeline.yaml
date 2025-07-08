@@ -76,6 +76,8 @@ Resources:
                 - Name: InfraBuildOutput
               Configuration:
                 ProjectName: vamshi-infra-build
+                PrimarySource: SourceOutput
+                BuildSpec: buildspec-infra.yml
               RunOrder: 1
 
         - Name: BuildAndDeployApp
@@ -90,6 +92,8 @@ Resources:
                 - Name: SourceOutput
               Configuration:
                 ProjectName: vamshi-app-build
+                PrimarySource: SourceOutput
+                BuildSpec: buildspec-app.yml
               RunOrder: 1
 
   GitHubWebhook:

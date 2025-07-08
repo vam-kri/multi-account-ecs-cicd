@@ -1,70 +1,48 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: CodeBuild Projects
-
-Parameters:
-  GitHubRepoName:
-    Type: String
-    Default: multi-account-ecs-cicd
-  GitHubOwner:
-    Type: String
-    Default: vam-kri
-  GitHubBranch:
-    Type: String
-    Default: main
-  GitHubOAuthToken:
-    Type: String
-    NoEcho: true
+Description: CodeBuild projects for Infra and App in multi-account setup
 
 Resources:
-
-  CodeBuildServiceRole:
-    Type: AWS::IAM::Role
-    Properties:
-      RoleName: vamshi-codebuild-role
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: codebuild.amazonaws.com
-            Action: sts:AssumeRole
-      Policies:
-        - PolicyName: CodeBuildAccess
-          PolicyDocument:
-            Version: '2012-10-17'
-            Statement:
-              - Effect: Allow
-                Action: '*'
-                Resource: '*'
 
   InfraBuildProject:
     Type: AWS::CodeBuild::Project
     Properties:
       Name: vamshi-infra-build
+      Description: Builds and deploys ECR infra stack in Account 1
+      ServiceRole: arn:aws:iam::992313771121:role/vamshi-codebuild-role
       Source:
         Type: CODEPIPELINE
         BuildSpec: buildspec-infra.yml
       Artifacts:
         Type: CODEPIPELINE
       Environment:
-        ComputeType: BUILD_GENERAL1_SMALL
-        Image: aws/codebuild/standard:6.0
         Type: LINUX_CONTAINER
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/standard:7.0
         PrivilegedMode: true
-      ServiceRole: !GetAtt CodeBuildServiceRole.Arn
+        EnvironmentVariables:
+          - Name: ACCOUNT1_ROLE_ARN
+            Value: arn:aws:iam::044854092841:role/CrossAccountECRDeploymentRole
+          - Name: ECR_STACK_NAME
+            Value: vamshi-ecr-stack
 
   AppBuildProject:
     Type: AWS::CodeBuild::Project
     Properties:
       Name: vamshi-app-build
+      Description: Builds and pushes Docker image to ECR in Account 1
+      ServiceRole: arn:aws:iam::992313771121:role/vamshi-codebuild-role
       Source:
         Type: CODEPIPELINE
         BuildSpec: buildspec-app.yml
       Artifacts:
         Type: CODEPIPELINE
       Environment:
-        ComputeType: BUILD_GENERAL1_SMALL
-        Image: aws/codebuild/standard:6.0
         Type: LINUX_CONTAINER
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/standard:7.0
         PrivilegedMode: true
-      ServiceRole: !GetAtt CodeBuildServiceRole.Arn
+        EnvironmentVariables:
+          - Name: ACCOUNT1_ROLE_ARN
+            Value: arn:aws:iam::044854092841:role/CrossAccountPushRole
+          - Name: ACCOUNT1_ECR_REPO_URI
+            Value: 044854092841.dkr.ecr.us-east-1.amazonaws.com/vamshi-microservice
