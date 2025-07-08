@@ -2,8 +2,7 @@ version: 0.2
 
 env:
   variables:
-    ACCOUNT1_ROLE_ARN: arn:aws:iam::044854092841:role/CrossAccountECRPushRole
-    ACCOUNT1_ECR_REPO_URI: 044854092841.dkr.ecr.us-east-1.amazonaws.com/vamshi-microservice
+    IMAGE_TAG: "latest"
 
 phases:
   install:
@@ -14,29 +13,23 @@ phases:
   pre_build:
     commands:
       - echo "Assuming role into Account 1..."
-      - aws sts assume-role \
-          --role-arn "$ACCOUNT1_ROLE_ARN" \
-          --role-session-name ecrsession > assume-role-output.txt
+      - aws sts assume-role --role-arn "$ACCOUNT1_ROLE_ARN" --role-session-name ecrsession > assume-role-output.txt
       - export AWS_ACCESS_KEY_ID=$(cat assume-role-output.txt | jq -r '.Credentials.AccessKeyId')
       - export AWS_SECRET_ACCESS_KEY=$(cat assume-role-output.txt | jq -r '.Credentials.SecretAccessKey')
       - export AWS_SESSION_TOKEN=$(cat assume-role-output.txt | jq -r '.Credentials.SessionToken')
-      - echo "Logging into target ECR..."
-      - aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin $ACCOUNT1_ECR_REPO_URI
+      - echo "Logging in to target ECR..."
+      - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $ACCOUNT1_ECR_REPO_URI
 
   build:
     commands:
-      - echo "Build started on $(date)"
+      - echo "Build started on `date`"
       - echo "Building the Docker image..."
       - cd microservice-app
-      - docker build -t vamshi-microservice .
-      - docker tag vamshi-microservice:latest $ACCOUNT1_ECR_REPO_URI:latest
+      - docker build -t vamshi-microservice:$IMAGE_TAG .
+      - docker tag vamshi-microservice:$IMAGE_TAG $ACCOUNT1_ECR_REPO_URI:$IMAGE_TAG
 
   post_build:
     commands:
-      - echo "Pushing Docker image to ECR..."
-      - docker push $ACCOUNT1_ECR_REPO_URI:latest
-      - echo "✅ Build and push complete on $(date)"
-
-artifacts:
-  files:
-    - '**/*'
+      - echo "Pushing the Docker image..."
+      - docker push $ACCOUNT1_ECR_REPO_URI:$IMAGE_TAG
+      - echo "Build completed on `date`"
