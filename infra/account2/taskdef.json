@@ -1,0 +1,16 @@
+{
+  "family": "vamshi-task",
+  "containerDefinitions": [
+    {
+      "name": "vamshi-container",
+      "image": "<IMAGE_URI>",
+      "essential": true,
+      "portMappings": [
+        {
+          "containerPort": 8000,
+          "hostPort": 8000
+        }
+      ]
+    }
+  ]
+}
