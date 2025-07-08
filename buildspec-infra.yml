@@ -31,7 +31,8 @@ phases:
           --stack-name $ECR_STACK_NAME \
           --capabilities CAPABILITY_NAMED_IAM 2>&1)
         echo "$DEPLOY_OUTPUT"
-        if [[ "$DEPLOY_OUTPUT" == *"No changes to deploy"* ]]; then
+        echo "$DEPLOY_OUTPUT" | grep -q "No changes to deploy"
+        if [ $? -eq 0 ]; then
           echo "✅ No changes to deploy. Continuing..."
           exit 0
         else
