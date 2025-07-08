@@ -24,7 +24,20 @@ phases:
       - export AWS_SESSION_TOKEN=$(jq -r .Credentials.SessionToken temp_creds.json)
 
       - echo "Deploying ECR stack in Account 1..."
-      - aws cloudformation deploy --template-file infra/ecr.yaml --stack-name $ECR_STACK_NAME --capabilities CAPABILITY_NAMED_IAM
+      - |
+        set +e
+        DEPLOY_OUTPUT=$(aws cloudformation deploy \
+          --template-file infra/ecr.yaml \
+          --stack-name $ECR_STACK_NAME \
+          --capabilities CAPABILITY_NAMED_IAM 2>&1)
+        echo "$DEPLOY_OUTPUT"
+        if [[ "$DEPLOY_OUTPUT" == *"No changes to deploy"* ]]; then
+          echo "✅ No changes to deploy. Continuing..."
+          exit 0
+        else
+          echo "❌ CloudFormation deploy failed."
+          exit 1
+        fi
 
 artifacts:
   files:

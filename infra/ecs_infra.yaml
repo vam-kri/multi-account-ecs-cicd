@@ -176,3 +176,5 @@ Outputs:
   ALBUrl:
     Description: Public ALB URL
     Value: !Join ['', ['http://', !GetAtt ApplicationLoadBalancer.DNSName]]
+    Export:
+      Name: Vamshi-ALB-URL
