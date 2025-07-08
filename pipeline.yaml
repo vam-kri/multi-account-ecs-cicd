@@ -31,12 +31,12 @@ Resources:
               Service: codepipeline.amazonaws.com
             Action: sts:AssumeRole
       ManagedPolicyArns:
-          - arn:aws:iam::aws:policy/AmazonS3FullAccess
-          - arn:aws:iam::aws:policy/AWSCodePipeline_FullAccess
-          - arn:aws:iam::aws:policy/AWSCodeBuildDeveloperAccess
-          - arn:aws:iam::aws:policy/AWSCloudFormationFullAccess
+        - arn:aws:iam::aws:policy/AmazonS3FullAccess
+        - arn:aws:iam::aws:policy/AWSCodePipeline_FullAccess
+        - arn:aws:iam::aws:policy/AWSCodeBuildDeveloperAccess
+        - arn:aws:iam::aws:policy/AWSCloudFormationFullAccess
 
-  Pipeline:
+  MyPipeline:
     Type: AWS::CodePipeline::Pipeline
     Properties:
       Name: vamshi-cicd-pipeline
@@ -91,3 +91,19 @@ Resources:
               Configuration:
                 ProjectName: vamshi-app-build
               RunOrder: 1
+
+  GitHubWebhook:
+    Type: AWS::CodePipeline::Webhook
+    DependsOn: MyPipeline
+    Properties:
+      Authentication: GITHUB_HMAC
+      AuthenticationConfiguration:
+        SecretToken: !Ref GitHubOAuthToken
+      Filters:
+        - JsonPath: "$.ref"
+          MatchEquals: "refs/heads/${GitHubBranch}"
+      RegisterWithThirdParty: true
+      TargetAction: SourceAction
+      TargetPipeline: !Ref MyPipeline
+      TargetPipelineVersion: 1
+      Name: vamshi-github-webhook
