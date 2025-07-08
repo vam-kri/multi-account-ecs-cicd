@@ -28,6 +28,6 @@ phases:
 
 env:
   variables:
-    IMAGE_REPO_NAME: vamshi-app
+    IMAGE_REPO_NAME: vamshi-microservice
     AWS_REGION: us-east-1
-    ECR_REPO_URI: <your-account-id>.dkr.ecr.us-east-1.amazonaws.com
+    ECR_REPO_URI: 044854092841.dkr.ecr.us-east-1.amazonaws.com/vamshi-microservice
