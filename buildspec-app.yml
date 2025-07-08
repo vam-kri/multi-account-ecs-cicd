@@ -1,9 +1,11 @@
 version: 0.2
 
+env:
+  variables:
+    AWS_DEFAULT_REGION: us-east-1
+
 phases:
   install:
-    runtime-versions:
-      python: 3.10
     commands:
       - echo Installing dependencies...
       - pip install --upgrade awscli jq
@@ -11,28 +13,23 @@ phases:
   pre_build:
     commands:
       - echo Preparing to assume role in Account 1...
-      - |
-        CREDS=$(aws sts assume-role \
+      - CREDS=$(aws sts assume-role \
           --role-arn "$ACCOUNT1_ROLE_ARN" \
           --role-session-name codebuildAppSession)
       - export AWS_ACCESS_KEY_ID=$(echo $CREDS | jq -r '.Credentials.AccessKeyId')
       - export AWS_SECRET_ACCESS_KEY=$(echo $CREDS | jq -r '.Credentials.SecretAccessKey')
       - export AWS_SESSION_TOKEN=$(echo $CREDS | jq -r '.Credentials.SessionToken')
       - echo Logging in to ECR in Account 1...
-      - aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 044854092841.dkr.ecr.us-east-1.amazonaws.com
+      - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin 044854092841.dkr.ecr.us-east-1.amazonaws.com
 
   build:
     commands:
       - echo Building Docker image...
+      - cd microservice-app             # 👈 switch to correct dir
       - docker build -t vamshi-microservice:$CODEBUILD_RESOLVED_SOURCE_VERSION .
-      - docker tag vamshi-microservice:$CODEBUILD_RESOLVED_SOURCE_VERSION 044854092841.dkr.ecr.us-east-1.amazonaws.com/vamshi-microservice:$CODEBUILD_RESOLVED_SOURCE_VERSION
 
   post_build:
     commands:
       - echo Pushing Docker image to Account 1 ECR...
+      - docker tag vamshi-microservice:$CODEBUILD_RESOLVED_SOURCE_VERSION 044854092841.dkr.ecr.us-east-1.amazonaws.com/vamshi-microservice:$CODEBUILD_RESOLVED_SOURCE_VERSION
       - docker push 044854092841.dkr.ecr.us-east-1.amazonaws.com/vamshi-microservice:$CODEBUILD_RESOLVED_SOURCE_VERSION
-      - echo ✅ Image push complete
-
-env:
-  variables:
-    ACCOUNT1_ROLE_ARN: arn:aws:iam::044854092841:role/CrossAccountECRDeploymentRole
