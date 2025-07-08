@@ -3,31 +3,36 @@ version: 0.2
 phases:
   install:
     runtime-versions:
-      docker: 20
+      python: 3.10
     commands:
       - echo Installing dependencies...
-      - echo Logging in to Amazon ECR...
-      - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REPO_URI
+      - pip install --upgrade awscli jq
 
   pre_build:
     commands:
-      - echo Build started on `date`
-      - echo Building the Docker image...
-      - docker build -t $IMAGE_REPO_NAME:$CODEBUILD_RESOLVED_SOURCE_VERSION .
+      - echo Preparing to assume role in Account 1...
+      - |
+        CREDS=$(aws sts assume-role \
+          --role-arn "$ACCOUNT1_ROLE_ARN" \
+          --role-session-name codebuildAppSession)
+      - export AWS_ACCESS_KEY_ID=$(echo $CREDS | jq -r '.Credentials.AccessKeyId')
+      - export AWS_SECRET_ACCESS_KEY=$(echo $CREDS | jq -r '.Credentials.SecretAccessKey')
+      - export AWS_SESSION_TOKEN=$(echo $CREDS | jq -r '.Credentials.SessionToken')
+      - echo Logging in to ECR in Account 1...
+      - aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 044854092841.dkr.ecr.us-east-1.amazonaws.com
 
   build:
     commands:
-      - echo Tagging image...
-      - docker tag $IMAGE_REPO_NAME:$CODEBUILD_RESOLVED_SOURCE_VERSION $ECR_REPO_URI/$IMAGE_REPO_NAME:$CODEBUILD_RESOLVED_SOURCE_VERSION
+      - echo Building Docker image...
+      - docker build -t vamshi-microservice:$CODEBUILD_RESOLVED_SOURCE_VERSION .
+      - docker tag vamshi-microservice:$CODEBUILD_RESOLVED_SOURCE_VERSION 044854092841.dkr.ecr.us-east-1.amazonaws.com/vamshi-microservice:$CODEBUILD_RESOLVED_SOURCE_VERSION
 
   post_build:
     commands:
-      - echo Pushing Docker image to ECR...
-      - docker push $ECR_REPO_URI/$IMAGE_REPO_NAME:$CODEBUILD_RESOLVED_SOURCE_VERSION
-      - echo Build completed on `date`
+      - echo Pushing Docker image to Account 1 ECR...
+      - docker push 044854092841.dkr.ecr.us-east-1.amazonaws.com/vamshi-microservice:$CODEBUILD_RESOLVED_SOURCE_VERSION
+      - echo ✅ Image push complete
 
 env:
   variables:
-    IMAGE_REPO_NAME: vamshi-microservice
-    AWS_REGION: us-east-1
-    ECR_REPO_URI: 044854092841.dkr.ecr.us-east-1.amazonaws.com/vamshi-microservice
+    ACCOUNT1_ROLE_ARN: arn:aws:iam::044854092841:role/CrossAccountECRDeploymentRole
