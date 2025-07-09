@@ -2,7 +2,8 @@ version: 0.2
 
 env:
   variables:
-    IMAGE_URI: public.ecr.aws/docker/library/nginx:latest
+    IMAGE_URI: 044854092841.dkr.ecr.us-east-1.amazonaws.com/vamshi-microservice
+    STACK_NAME: vamshi-ecs-infra
 
 phases:
   install:
@@ -10,14 +11,20 @@ phases:
       - echo "Installing dependencies..."
       - pip install --upgrade awscli
 
+  pre_build:
+    commands:
+      - echo "Preparing to deploy ECS infrastructure using CloudFormation..."
+
   build:
     commands:
-      - echo "Deploying ECS infrastructure to Account 2..."
-      - aws cloudformation deploy \
+      - echo "Deploying ECS infrastructure to Account 2 using CloudFormation..."
+      - |
+        aws cloudformation deploy \
           --template-file infra/account2/ecs_infra.yaml \
-          --stack-name vamshi-ecs-infra \
+          --stack-name $STACK_NAME \
           --capabilities CAPABILITY_NAMED_IAM \
           --parameter-overrides EcrImageUri=$IMAGE_URI
 
 artifacts:
-  files: []
+  files:
+    - '**/*'
