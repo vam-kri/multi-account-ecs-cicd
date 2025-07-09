@@ -23,7 +23,7 @@ Resources:
               OutputArtifacts:
                 - Name: SourceOutput
               Configuration:
-                Owner: vamshik2506
+                Owner: vam-kri
                 Repo: multi-account-ecs-cicd
                 Branch: main
                 OAuthToken: "{{resolve:secretsmanager:GitHubToken:SecretString:token}}"
