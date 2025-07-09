@@ -1,0 +1,23 @@
+version: 0.2
+
+env:
+  variables:
+    IMAGE_URI: public.ecr.aws/docker/library/nginx:latest
+
+phases:
+  install:
+    commands:
+      - echo "Installing dependencies..."
+      - pip install --upgrade awscli
+
+  build:
+    commands:
+      - echo "Deploying ECS infrastructure to Account 2..."
+      - aws cloudformation deploy \
+          --template-file infra/account2/ecs_infra.yaml \
+          --stack-name vamshi-ecs-infra \
+          --capabilities CAPABILITY_NAMED_IAM \
+          --parameter-overrides EcrImageUri=$IMAGE_URI
+
+artifacts:
+  files: []

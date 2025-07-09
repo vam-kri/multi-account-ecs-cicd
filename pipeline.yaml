@@ -29,6 +29,20 @@ Resources:
                 OAuthToken: "{{resolve:secretsmanager:GitHubToken:SecretString:token}}"
               RunOrder: 1
 
+        - Name: InfraDeploy
+          Actions:
+            - Name: InfraBuildAction
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Provider: CodeBuild
+                Version: 1
+              InputArtifacts:
+                - Name: SourceOutput
+              Configuration:
+                ProjectName: vamshi-infra-build
+              RunOrder: 1
+
         - Name: AppBuild
           Actions:
             - Name: AppBuildAction
@@ -45,9 +59,9 @@ Resources:
                 ProjectName: vamshi-app-build
               RunOrder: 1
 
-        - Name: InfraDeploy
+        - Name: ECSInfra
           Actions:
-            - Name: InfraBuildAction
+            - Name: ECSInfraAction
               ActionTypeId:
                 Category: Build
                 Owner: AWS
@@ -56,7 +70,7 @@ Resources:
               InputArtifacts:
                 - Name: SourceOutput
               Configuration:
-                ProjectName: vamshi-infra-build
+                ProjectName: vamshi-ecs-infra
               RunOrder: 1
 
         - Name: ECSDeploy
