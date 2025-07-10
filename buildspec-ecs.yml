@@ -1,33 +1,38 @@
 version: 0.2
 
+env:
+  variables:
+    PUBLIC_ECR_ALIAS: "t3e3b1o4"
+    PUBLIC_REPO_NAME: "vamshi-microservice"
+    IMAGE_TAG: "latest"
+    IMAGE_URI: "public.ecr.aws/${PUBLIC_ECR_ALIAS}/${PUBLIC_REPO_NAME}:${IMAGE_TAG}"
+
 phases:
   install:
     runtime-versions:
       python: 3.11
     commands:
-      - echo Installing dependencies...
+      - echo "Installing dependencies..."
       - pip install --upgrade awscli jq
 
   pre_build:
     commands:
-      - echo "Assuming role to access ECR from Account 1..."
-      - aws sts assume-role           --role-arn "$ACCOUNT1_ROLE_ARN"           --role-session-name ecsdeploysession > assume-role-output.txt
-      - export AWS_ACCESS_KEY_ID=$(cat assume-role-output.txt | jq -r '.Credentials.AccessKeyId')
-      - export AWS_SECRET_ACCESS_KEY=$(cat assume-role-output.txt | jq -r '.Credentials.SecretAccessKey')
-      - export AWS_SESSION_TOKEN=$(cat assume-role-output.txt | jq -r '.Credentials.SessionToken')
-      - export IMAGE_URI=$ACCOUNT1_ECR_REPO_URI:latest
-      - echo IMAGE_URI is $IMAGE_URI
+      - echo "Preparing image URI for ECS deployment..."
+      - echo "IMAGE_URI is $IMAGE_URI"
 
   build:
     commands:
-      - echo Updating ECS task definition...
+      - echo "Updating ECS task definition with public image URI..."
       - sed -i "s|<IMAGE_URI>|$IMAGE_URI|g" infra/account2/taskdef.json
       - cat infra/account2/taskdef.json
 
   post_build:
     commands:
-      - echo Deploying to ECS...
-      - aws ecs update-service           --cluster $ECS_CLUSTER_NAME           --service $ECS_SERVICE_NAME           --force-new-deployment
+      - echo "Deploying updated task definition to ECS..."
+      - aws ecs update-service \
+          --cluster $ECS_CLUSTER_NAME \
+          --service $ECS_SERVICE_NAME \
+          --force-new-deployment
 
 artifacts:
   files: []

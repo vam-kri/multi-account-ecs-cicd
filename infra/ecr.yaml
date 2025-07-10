@@ -1,16 +1,18 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: Create ECR Repository in Account 1
+Description: Create Public ECR Repository
 
 Resources:
-  VamshiECR:
-    Type: AWS::ECR::Repository
+  PublicECRRepository:
+    Type: AWS::ECR::PublicRepository
     Properties:
       RepositoryName: vamshi-microservice
-      ImageScanningConfiguration:
-        scanOnPush: true
+      RepositoryCatalogData:
+        RepositoryDescription: "Public microservice image repository for multi-account ECS"
+      Tags:
+        - Key: Name
+          Value: vamshi-microservice
 
 Outputs:
-  EcrUri:
-    Value: !GetAtt VamshiECR.RepositoryUri
-    Export:
-      Name: EcrRepoUri
+  PublicECRRepositoryUri:
+    Description: URI of the public ECR repository
+    Value: !Sub "public.ecr.aws/${AWS::AccountId}/vamshi-microservice"

@@ -2,7 +2,10 @@ version: 0.2
 
 env:
   variables:
-    IMAGE_URI: 044854092841.dkr.ecr.us-east-1.amazonaws.com/vamshi-microservice
+    PUBLIC_ECR_ALIAS: "t3e3b1o4"
+    PUBLIC_REPO_NAME: "vamshi-microservice"
+    IMAGE_TAG: "latest"
+    IMAGE_URI: "public.ecr.aws/${PUBLIC_ECR_ALIAS}/${PUBLIC_REPO_NAME}:${IMAGE_TAG}"
     STACK_NAME: vamshi-ecs-infra
 
 phases:

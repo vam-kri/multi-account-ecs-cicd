@@ -23,7 +23,7 @@ phases:
       - export AWS_SECRET_ACCESS_KEY=$(jq -r .Credentials.SecretAccessKey temp_creds.json)
       - export AWS_SESSION_TOKEN=$(jq -r .Credentials.SessionToken temp_creds.json)
 
-      - echo "Deploying ECR stack in Account 1..."
+      - echo "Deploying PUBLIC ECR stack in Account 1..."
       - |
         set +e
         DEPLOY_OUTPUT=$(aws cloudformation deploy \
