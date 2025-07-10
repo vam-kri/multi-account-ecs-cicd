@@ -1,32 +1,43 @@
 version: 0.2
 
-env:
-  variables:
-    PUBLIC_ECR_ALIAS: "t3e3b1o4"
-    PUBLIC_REPO_NAME: "vamshi-microservice"
-    IMAGE_TAG: "latest"
-    IMAGE_URI: "public.ecr.aws/${PUBLIC_ECR_ALIAS}/${PUBLIC_REPO_NAME}:${IMAGE_TAG}"
-    STACK_NAME: vamshi-ecs-infra
-
 phases:
   install:
     commands:
       - echo "Installing dependencies..."
-      - pip install --upgrade awscli
+      - pip install --upgrade awscli jq
 
   pre_build:
     commands:
-      - echo "Preparing to deploy ECS infrastructure using CloudFormation..."
+      - echo "Preparing to assume role in Account 1..."
 
   build:
     commands:
-      - echo "Deploying ECS infrastructure to Account 2 using CloudFormation..."
+      - echo "Assuming role in Account 1..."
+      - aws sts assume-role --role-arn "$ACCOUNT1_ROLE_ARN" --role-session-name ecrDeploySession > temp_creds.json
+      - export AWS_ACCESS_KEY_ID=$(jq -r .Credentials.AccessKeyId temp_creds.json)
+      - export AWS_SECRET_ACCESS_KEY=$(jq -r .Credentials.SecretAccessKey temp_creds.json)
+      - export AWS_SESSION_TOKEN=$(jq -r .Credentials.SessionToken temp_creds.json)
+
+      - echo "Deploying PUBLIC ECR stack in Account 1..."
       - |
-        aws cloudformation deploy \
-          --template-file infra/account2/ecs_infra.yaml \
-          --stack-name $STACK_NAME \
-          --capabilities CAPABILITY_NAMED_IAM \
-          --parameter-overrides EcrImageUri=$IMAGE_URI
+        bash -c '
+        DEPLOY_OUTPUT=$(aws cloudformation deploy \
+          --template-file infra/ecr.yaml \
+          --stack-name "$ECR_STACK_NAME" \
+          --capabilities CAPABILITY_NAMED_IAM 2>&1)
+        EXIT_CODE=$?
+        echo "$DEPLOY_OUTPUT"
+        if [[ $EXIT_CODE -eq 0 ]]; then
+          echo "✅ CloudFormation deploy succeeded."
+          exit 0
+        elif echo "$DEPLOY_OUTPUT" | grep -q "No changes to deploy"; then
+          echo "✅ No changes to deploy. Continuing..."
+          exit 0
+        else
+          echo "❌ CloudFormation deploy failed."
+          exit 1
+        fi
+        '
 
 artifacts:
   files:
