@@ -1,29 +1,34 @@
 version: 0.2
+
 env:
   variables:
     PUBLIC_ECR_ALIAS: "t3e3b1o4"
     PUBLIC_REPO_NAME: "vamshi-microservice"
     IMAGE_TAG: "klatest"
+
 phases:
   install:
     commands:
       - echo "Installing dependencies..."
       - pip install --upgrade awscli jq
       - echo ":heavy_check_mark: Dependencies installed"
+
   pre_build:
     commands:
       - echo "No login needed for public ECR if permissions are correct"
       - export PUBLIC_ECR_ALIAS_LOWER=$(echo "$PUBLIC_ECR_ALIAS" | tr '[:upper:]' '[:lower:]')
       - export PUBLIC_REPO_NAME_LOWER=$(echo "$PUBLIC_REPO_NAME" | tr '[:upper:]' '[:lower:]')
-      - export IMAGE_URI="public.ecr.aws/$PUBLIC_ECR_ALIAS_LOWER/$PUBLIC_REPO_NAME_LOWER:$IMAGE_TAG"
+      - export IMAGE_URI="public.ecr.aws/${PUBLIC_ECR_ALIAS_LOWER}/${PUBLIC_REPO_NAME_LOWER}:${IMAGE_TAG}"
       - echo "IMAGE_URI is $IMAGE_URI"
+
   build:
     commands:
       - echo "Build started on $(date)"
       - cd microservice-app
       - echo "Building the Docker image..."
-      - docker build -t "$PUBLIC_REPO_NAME:$IMAGE_TAG" .
-      - docker tag "$PUBLIC_REPO_NAME:$IMAGE_TAG" "$IMAGE_URI"
+      - docker build -t "${PUBLIC_REPO_NAME}:${IMAGE_TAG}" .
+      - docker tag "${PUBLIC_REPO_NAME}:${IMAGE_TAG}" "$IMAGE_URI"
+
   post_build:
     commands:
       - echo "Pushing the Docker image to public ECR..."
