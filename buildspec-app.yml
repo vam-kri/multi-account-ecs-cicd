@@ -2,10 +2,9 @@ version: 0.2
 
 env:
   variables:
-    IMAGE_TAG: "latest"
-    PUBLIC_ECR_ALIAS: "t3e3b1o4"
-    PUBLIC_REPO_NAME: "vamshi-microservice"
-    IMAGE_URI: "public.ecr.aws/${PUBLIC_ECR_ALIAS}/${PUBLIC_REPO_NAME}:${IMAGE_TAG}"
+    PUBLIC_ECR_ALIAS: vamshi123                # Must be lowercase
+    PUBLIC_REPO_NAME: microservice-app         # Must be lowercase
+    IMAGE_TAG: latest
 
 phases:
   install:
@@ -17,6 +16,7 @@ phases:
   pre_build:
     commands:
       - echo "No login needed for public ECR if permissions are correct"
+      - export IMAGE_URI="public.ecr.aws/${PUBLIC_ECR_ALIAS}/${PUBLIC_REPO_NAME}:${IMAGE_TAG}"
       - echo "IMAGE_URI is $IMAGE_URI"
 
   build:
@@ -26,11 +26,13 @@ phases:
       - echo "Building the Docker image..."
       - docker build -t $PUBLIC_REPO_NAME:$IMAGE_TAG .
       - docker tag $PUBLIC_REPO_NAME:$IMAGE_TAG $IMAGE_URI
-      - echo "✔️ Docker image built and tagged as $IMAGE_URI"
 
   post_build:
     commands:
       - echo "Pushing the Docker image to public ECR..."
       - docker push $IMAGE_URI
-      - echo "✔️ Docker image pushed successfully"
-      - echo "Build completed on `date`"
+      - echo "✔️ Image pushed to public ECR: $IMAGE_URI"
+
+artifacts:
+  files:
+    - '**/*'
