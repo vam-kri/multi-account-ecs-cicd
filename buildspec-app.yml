@@ -21,7 +21,7 @@ phases:
       - cd microservice-app
       - echo "Building the Docker image..."
       - docker build -t "$PUBLIC_REPO_NAME:$IMAGE_TAG" .
-      - docker tag "$PUBLIC_REPO_NAME:$IMAGE_TAG" "$IMAGE_URI"
+      - bash -c 'docker tag "$PUBLIC_REPO_NAME:$IMAGE_TAG" "$IMAGE_URI"'
 
   post_build:
     commands:
