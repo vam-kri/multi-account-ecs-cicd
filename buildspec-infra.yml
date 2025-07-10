@@ -1,10 +1,5 @@
 version: 0.2
 
-env:
-  variables:
-    ACCOUNT1_ROLE_ARN: arn:aws:iam::044854092841:role/CrossAccountECRDeploymentRole
-    ECR_STACK_NAME: vamshi-ecr-stack
-
 phases:
   install:
     commands:
@@ -30,9 +25,13 @@ phases:
           --template-file infra/ecr.yaml \
           --stack-name $ECR_STACK_NAME \
           --capabilities CAPABILITY_NAMED_IAM 2>&1)
+        EXIT_CODE=$?
         echo "$DEPLOY_OUTPUT"
-        echo "$DEPLOY_OUTPUT" | grep -q "No changes to deploy"
-        if [ $? -eq 0 ]; then
+
+        if [[ $EXIT_CODE -eq 0 ]]; then
+          echo "✅ CloudFormation deploy succeeded."
+          exit 0
+        elif echo "$DEPLOY_OUTPUT" | grep -q "No changes to deploy"; then
           echo "✅ No changes to deploy. Continuing..."
           exit 0
         else
